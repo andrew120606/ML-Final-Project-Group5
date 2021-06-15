@@ -1,0 +1,125 @@
+#%%-----------------------------------------------------------------------
+## Importing the required packages
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore")
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
+
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
+from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+
+# read data as panda dataframe
+data = pd.read_csv("aug_train.csv")
+
+# remove unrelated columns
+data = data.drop(["enrollee_id","city"],axis=1)
+
+# change some values to be understood easily
+data["company_size"].unique()
+for i in range(len(data.index)):
+    if data['company_size'][i] == '10/49':
+        data['company_size'][i] = '10-49'
+
+data["experience"].unique()
+for i in range(len(data.index)):
+    if data['experience'][i] == '>20':
+        data['experience'][i] = '21'
+    elif data['experience'][i] == '<1':
+       data['experience'][i] = '0'
+
+data["last_new_job"].unique()
+for i in range(len(data.index)):
+    if data['last_new_job'][i] == '>4':
+        data['last_new_job'][i] = '5'
+    elif data['last_new_job'][i] == 'never':
+        data['last_new_job'][i] = '0'
+
+retarget = {0.0: 'Not looking for job change',
+           1.0: 'Looking for job change'}
+data['target'] = data['target'].map(retarget)
+
+#%%-----------------------------------------------------------------------
+## data preprocess
+# remap target variable
+retarget2 = {'Not looking for job change': 0, 'Looking for job change': 1}
+data['target'] = data['target'].map(retarget2)
+
+# convert the necessary columns to a numeric format
+data['experience'] = data['experience'].astype(np.float).astype("Int32")
+data['last_new_job'] = data['last_new_job'].astype(np.float).astype("Int32")
+
+# correlation between features with numerical data
+cor=data.corr()
+sns.heatmap(cor, annot=True)
+plt.title('Correlation between features')
+plt.show()
+
+# specify the predictor and target variable
+X = data.drop(["target"],axis = 1)
+y = data["target"]
+
+# fill na
+X['experience'] = X['experience'].astype('float64').fillna(X['experience'].mean())
+X['last_new_job'] = X['last_new_job'].astype('float64').fillna(X['last_new_job'].mean())
+X['training_hours'] = X['training_hours'].astype('float64').fillna(X['training_hours'].mean())
+
+# encoding categorical features with OneHotEncoder()
+columns_categorical = ["gender","relevent_experience","enrolled_university","education_level","major_discipline","company_size","company_type"]
+columns_numerical = ["city_development_index","experience","last_new_job","training_hours"]
+
+X = pd.get_dummies(X, columns = columns_categorical)
+
+sc = StandardScaler()
+X["city_development_index"] = sc.fit_transform(X["city_development_index"].values.reshape(-1,1))
+X["experience"] = sc.fit_transform(X["experience"].values.reshape(-1,1))
+X["last_new_job"] = sc.fit_transform(X["last_new_job"].values.reshape(-1,1))
+X["training_hours"] = sc.fit_transform(X["training_hours"].values.reshape(-1,1))
+
+## model
+# label target variable
+le = LabelEncoder()
+y = le.fit_transform(y)
+
+# split the dataset into train and test
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=2000)
+
+# logistic regression model
+lr = LogisticRegression()
+lr.fit(X_train, y_train)
+# Make predictions
+y_pred1 = lr.predict(X_test)
+y_pred_score1 = lr.predict_proba(X_test)
+print(classification_report(y_test,y_pred1))
+print("Accuracy:", accuracy_score(y_test, y_pred1) * 100)
+print("ROC_AUC:", roc_auc_score(y_test,y_pred_score1[:,-1]) * 100)
+
+# randomforest
+clf = RandomForestClassifier(n_estimators=90)
+clf.fit(X_train, y_train)
+## Make predictions
+y_pred = clf.predict(X_test)
+y_pred_score = clf.predict_proba(X_test)
+print(classification_report(y_test,y_pred))
+print("Accuracy:", accuracy_score(y_test, y_pred) * 100)
+print("ROC_AUC:", roc_auc_score(y_test,y_pred_score[:,-1]) * 100)code
+
+# KNN
+clf_KNN = KNeighborsClassifier(n_neighbors=5)
+clf_KNN.fit(X_train, y_train)
+#make prediction
+y_pred0 = clf_KNN.predict(X_test)
+y_pred_score0 = clf_KNN.predict_proba(X_test)
+
+print(classification_report(y_test,y_pred0))
+print("Accuracy:", accuracy_score(y_test, y_pred0) * 100)
+print("ROC_AUC:", roc_auc_score(y_test,y_pred_score0[:,-1]) * 100)
