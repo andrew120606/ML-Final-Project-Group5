@@ -2,20 +2,26 @@
 
 import numpy as np
 import pandas as pd
-import os
+import seaborn as sns
 import matplotlib.pyplot as plt
+import os
+import tensorflow as tf
 
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+
+from tensorflow.keras.preprocessing.image import load_img, img_to_array, ImageDataGenerator
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report, accuracy_score,confusion_matrix
 from sklearn.model_selection import train_test_split
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import RMSprop,SGD,Adagrad,Adadelta,Adamax,Adam
 from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D, BatchNormalization,MaxPooling2D
-from tensorflow.keras.optimizers import RMSprop
+from keras.callbacks import EarlyStopping
 from sklearn.utils import shuffle
+
 from numpy.random import seed
 seed(1)
 
@@ -48,16 +54,20 @@ plt.show()
 dataset=[]
 labels=[]
 mapping={'no_tumor':0, 'pituitary_tumor':1, 'meningioma_tumor':2, 'glioma_tumor':3}
-
+counts = []
 for file in os.listdir(directory):
     path = os.path.join(directory,file)
+    count=0
     for im in os.listdir(path):
         image=load_img(os.path.join(path,im), grayscale=False, color_mode='rgb', target_size=(128,128))
         image=img_to_array(image)
         image=image/255.0
         dataset.append(image)
         labels.append(mapping[file])
+        count += 1
+    counts.append(count)
 print(len(dataset), len(labels))
+print(dict(zip(File,counts)))
 
 #%%#---------------------------define X, y for SVM, KNN, MLP-----------------------------------------------------
 
@@ -103,8 +113,6 @@ print("X_test_flatten",X_test_flatten.shape)
 
 #%%#------------------------ANN----------------------------------------------------------
 
-from tensorflow.keras.optimizers import RMSprop,SGD,Adagrad,Adadelta,Adamax,Adam,SGD
-
 model = Sequential()
 model.add(Dense(500, activation='sigmoid', input_shape=(49152,)))
 model.add(Dropout(0.2))
@@ -135,13 +143,12 @@ model.compile(loss='categorical_crossentropy',optimizer=RMSprop(lr=0.001),metric
 #model.compile(loss='categorical_crossentropy',optimizer=Adadelta(lr=1),metrics=['accuracy'])
 #model.compile(loss='categorical_crossentropy',optimizer=Adamax(lr=0.002),metrics=['accuracy'])
 
-from keras.callbacks import EarlyStopping
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1,patience=20)
 history = model.fit(X_train_flatten, y_train, batch_size=64, epochs=500, verbose=1, validation_split=0.10,
                     #callbacks=[es]
                     )
 score = model.evaluate(X_test_flatten, y_test, verbose=0)
-# =============================================================
+
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 
@@ -151,7 +158,7 @@ plt.plot(history.history['val_accuracy'])
 plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
+plt.legend(['train', 'validation'], loc='upper left')
 plt.show()
 # summarize history for loss
 plt.plot(history.history['loss'])
@@ -159,7 +166,7 @@ plt.plot(history.history['val_loss'])
 plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
+plt.legend(['train', 'validation'], loc='upper left')
 plt.show()
 
 #%%#------------------------ANN model prediction----------------------------------------------------------
@@ -172,7 +179,6 @@ Class_Report = classification_report(y_test_new,y_pred)
 print("Classification Report:")
 print(Class_Report)
 
-import seaborn as sns
 conf_matrix = confusion_matrix(y_test_new, y_pred)
 class_names = ['no_t', 'pituitary_t', 'meningioma_t', 'glioma_t']
 
@@ -187,12 +193,7 @@ plt.xlabel('Predicted label',fontsize=20)
 plt.tight_layout()
 plt.show()
 
-
 #%%#------------------------CNN model building and training----------------------------------------------------------
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D, BatchNormalization,MaxPooling2D
-from tensorflow.keras.optimizers import RMSprop
 
 Model = Sequential()
 Model.add(Conv2D(filters = 64, kernel_size = (3,3),
@@ -227,11 +228,11 @@ Model.compile(optimizer=RMSprop(lr=0.001),
 
 Call_Back = tf.keras.callbacks.EarlyStopping(monitor="loss",patience=2,mode="min")
 
-ANN_Model = Model.fit(X_train,y_train,epochs=50,batch_size=32,callbacks=Call_Back)
+CNN_Model = Model.fit(X_train,y_train,epochs=50,batch_size=32,callbacks=Call_Back)
 
 #%%#------------------------CNN model evaluation----------------------------------------------------------
 
-Dict_Summary = pd.DataFrame(ANN_Model.history)
+Dict_Summary = pd.DataFrame(CNN_Model.history)
 Dict_Summary.plot()
 plt.title("LOSS & ACCURACY")
 plt.xlabel("EPOCH")
@@ -239,6 +240,7 @@ plt.ylabel("Loss & Acc")
 plt.show()
 
 #%%#------------------------CNN model prediction----------------------------------------------------------
+
 y_pred = Model.predict(X_test)
 print(confusion_matrix(y_test,y_pred))
 print(classification_report(y_test,y_pred))
@@ -261,7 +263,7 @@ plt.show()
 
 #%%#------------------------classifier--------------------------------------------------------
 
-mlp = MLPClassifier(hidden_layer_sizes=(20,20),max_iter=500, activation='relu',early_stopping=False,momentum=0.9,solver='adam' )
+mlp = MLPClassifier(hidden_layer_sizes=(20,20),max_iter=500, activation='relu',early_stopping=False,momentum=0.9,solver='adam')
 #mlp = MLPClassifier(hidden_layer_sizes=(20,20),max_iter=500, activation='relu',early_stopping=False,momentum=0.9,solver='adam' )
 #mlp = MLPClassifier(hidden_layer_sizes=(20,20),max_iter=500, activation='relu',early_stopping=False,momentum=0.9,solver='adam')
 #mlp = MLPClassifier(hidden_layer_sizes=(200,200),max_iter=500, activation='relu',early_stopping=False,momentum=0.9,solver='adam' )
@@ -274,6 +276,7 @@ mlp = MLPClassifier(hidden_layer_sizes=(20,20),max_iter=500, activation='relu',e
 #mlp = MLPClassifier(hidden_layer_sizes=(200, 20, 20, 20, 20, 20,20,20,10),max_iter=500, activation='relu',early_stopping=False,momentum=0.9,solver='adam' )
 
 #%%#------------------------training and prediction----------------------------------------
+
 mlp.fit(X_train_flatten, y_train)
 y_pred = mlp.predict(X_test_flatten)
 
@@ -304,11 +307,8 @@ plt.show()
 
 #%%#------------------------SVM Modeling-----------------------------------------------------
 
-from sklearn.svm import SVC
-import seaborn as sns
-
 # creating the classifier object
-clf = SVC(kernel="non-linear")
+clf = SVC(kernel="poly")
 # performing training
 clf.fit(X_train, y_train)
 # predicton on test
@@ -336,9 +336,6 @@ plt.show()
 
 #%%#------------------------KNN Modeling-----------------------------------------------------
 
-from sklearn.neighbors import KNeighborsClassifier
-import seaborn as sns
-
 clf = KNeighborsClassifier(n_neighbors=4)
 # performing training
 clf.fit(X_train_flatten, y_train)
@@ -349,7 +346,6 @@ print("Classification Report: ")
 print(classification_report(y_test,y_pred))
 print("\n")
 
-import seaborn as sns
 conf_matrix = confusion_matrix(y_test, y_pred)
 class_names = ['no_t', 'pituitary_t', 'meningioma_t', 'glioma_t']
 
@@ -367,7 +363,6 @@ plt.show()
 
 #%%#------------------------Naive Bayes Modeling-----------------------------------------------------
 
-from sklearn.naive_bayes import GaussianNB
 clf = GaussianNB()
 
 clf.fit(X_train_flatten, y_train)
