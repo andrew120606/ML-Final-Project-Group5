@@ -17,7 +17,7 @@ The Training set is split into the following catergories:
 # STRUCTURE OF THE GITHUB REPO
 - README.md – Defines the structure of the repo
 - Group5-Code/ML_Final_Project.py – Final code
-- ML-Final-Project-Group5/Final-Group5-Presentation/Final-Group5-Presentation-v04.pptx – This folder has the PDF version of group project presentation
+- ML-Final-Project-Group5/Final-Group5-Presentation/Final-Group5-Presentation.pdf
 - ML-Final-Project-Group5/Final-Group5-Project-Report/Final_Project_Group5_Report.pdf – The complete report of the project in PDF format.
 - ML-Final-Project-Group5/Group5-Proposal/ - Final proposal
 
