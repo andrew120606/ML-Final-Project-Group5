@@ -22,4 +22,5 @@ STRUCTURE OF THE GITHUB REPO
 - Final-Group5-Project-Report/Final_Project_Group5_Report.pdf – The complete report of the project in PDF format.
 
 Any questions on the project please feel free to contact the authors as following:
-zongzhuli@gwu.edu or 
+- zongzhuli@gwu.edu
+- mlaziz@gwu.edu
