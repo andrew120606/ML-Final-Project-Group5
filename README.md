@@ -20,3 +20,6 @@ STRUCTURE OF THE GITHUB REPO
 - Group5-Code/ML_Final_Project_Group5_Code.py - The code used in this project.
 - Final-Group5-Presentation/Final-Project-Group5-Presentation.pdf - The final report of the project in PDF format.
 - Final-Group5-Project-Report/Final_Project_Group5_Report.pdf – The complete report of the project in PDF format.
+
+Any questions on the project please feel free to contact the authors as following:
+zongzhuli@gwu.edu or 
